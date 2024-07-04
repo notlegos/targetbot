@@ -1,35 +1,75 @@
+function setArrow (theAngle: number) {
+    if (theAngle == 90) {
+        basic.showArrow(ArrowNames.East)
+    } else if (theAngle == 180) {
+        basic.showArrow(ArrowNames.North)
+    } else if (theAngle == 270) {
+        basic.showArrow(ArrowNames.West)
+    } else {
+        basic.showArrow(ArrowNames.South)
+    }
+}
+function startAllWheels (speedPercent: number) {
+    neZha.setMotorSpeed(neZha.MotorList.M1, speedPercent)
+    neZha.setMotorSpeed(neZha.MotorList.M2, speedPercent)
+    neZha.setMotorSpeed(neZha.MotorList.M3, speedPercent * -1)
+    neZha.setMotorSpeed(neZha.MotorList.M4, speedPercent * -1)
+}
 radio.onReceivedValue(function (name, value) {
     Connected.showUserText(1, name)
     Connected.showUserNumber(2, value)
     if (name == "joyCente") {
         neZha.stopAllMotor()
     } else if (name == "joyLeft") {
-        if (value >= 2) {
-            turnAllWheels(90)
-            basic.showArrow(ArrowNames.East)
-        } else {
-            neZha.stopAllMotor()
+        if (value > 2) {
+            theHeading = (theHeading + 90) % 360
+            if (theHeading < 0) {
+                theHeading = theHeading + 360
+            }
+            Connected.showUserNumber(5, theHeading)
         }
+        turnAllWheels(theHeading)
+        setArrow(theHeading)
     } else if (name == "joyRight") {
-        if (value >= 2) {
-            turnAllWheels(270)
-            basic.showArrow(ArrowNames.West)
-        } else {
-            neZha.stopAllMotor()
+        if (value > 2) {
+            theHeading = (theHeading - 90) % 360
+            if (theHeading < 0) {
+                theHeading = theHeading + 360
+            }
+            Connected.showUserNumber(5, theHeading)
         }
+        turnAllWheels(theHeading)
+        setArrow(theHeading)
     } else if (name == "joyUp") {
-        if (value >= 2) {
-            turnAllWheels(0)
-            basic.showArrow(ArrowNames.South)
+        if (value > 2) {
+            if (!(isGoing)) {
+                spinAllWheels(50, 200)
+                startAllWheels(70)
+                isGoing = true
+            }
         } else {
-            neZha.stopAllMotor()
+            if (isGoing) {
+                isGoing = false
+                spinAllWheels(50, 200)
+                spinAllWheels(20, 200)
+                spinAllWheels(10, 200)
+                neZha.stopAllMotor()
+            }
         }
     } else if (name == "joyDown") {
-        if (value >= 2) {
-            turnAllWheels(180)
-            basic.showArrow(ArrowNames.North)
+        if (value > 2) {
+            if (!(isGoing)) {
+                spinAllWheels(-30, 200)
+                startAllWheels(-50)
+                isGoing = true
+            }
         } else {
-            neZha.stopAllMotor()
+            if (isGoing) {
+                isGoing = false
+                spinAllWheels(-20, 200)
+                spinAllWheels(-10, 200)
+                neZha.stopAllMotor()
+            }
         }
     } else if (name == "joyButto") {
         if (value == 5) {
@@ -37,30 +77,17 @@ radio.onReceivedValue(function (name, value) {
         } else if (value == 6) {
         	
         } else if (value == 2) {
-            spinAllWheels(50, 200)
-            spinAllWheels(70, 300)
-            spinAllWheels(50, 200)
-            spinAllWheels(20, 200)
-            spinAllWheels(10, 200)
+        	
         } else if (value == 3) {
-            spinAllWheels(-50, 200)
-            spinAllWheels(-20, 200)
-            spinAllWheels(-10, 200)
+        	
         } else if (value == 1) {
-            spinAllWheels(50, 200)
-            spinAllWheels(20, 200)
-            spinAllWheels(10, 200)
+        	
         } else if (value == 4) {
-            spinAllWheels(50, 200)
-            spinAllWheels(20, 200)
-            spinAllWheels(10, 200)
+        	
         } else {
         	
         }
     }
-})
-input.onLogoEvent(TouchButtonEvent.Pressed, function () {
-	
 })
 function turnAllWheels (theAngle: number) {
     neZha.setServoAngle(neZha.ServoTypeList._360, neZha.ServoList.S1, theAngle)
@@ -79,10 +106,11 @@ function spinAllWheels (speedPercent: number, durationMs: number) {
 let hits = 0
 let lastHitWasRed = false
 let isRed = false
+let isGoing = false
+let theHeading = 0
 radio.setGroup(80)
 Connected.oledClear()
 turnAllWheels(0)
-basic.showArrow(ArrowNames.South)
 let strip = Connected.create(Connected.DigitalRJPin.J3, 8, Connected.NeoPixelMode.RGB)
 strip.setBrightness(255)
 strip.showColor(Connected.colors(Connected.NeoPixelColors.Red))
@@ -94,6 +122,11 @@ basic.pause(2000)
 strip.setBrightness(20)
 strip.showColor(Connected.colors(Connected.NeoPixelColors.Yellow))
 Connected.execute(Connected.playType.Stop)
+theHeading = 0
+setArrow(theHeading)
+Connected.showUserText(4, "Heading")
+Connected.showUserNumber(5, theHeading)
+isGoing = false
 basic.forever(function () {
     isRed = Connected.checkColor(Connected.ColorList.red)
     Connected.showUserText(8, convertToText(isRed))
